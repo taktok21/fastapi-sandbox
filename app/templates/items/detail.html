@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}商品詳細 - 物販リサーチ{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/jobs/{{ item.job_id }}/items" class="btn btn-outline-secondary btn-sm">&larr; 結果一覧に戻る</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <a href="https://www.amazon.co.jp/dp/{{ item.asin }}" target="_blank">
+                        {{ item.asin }}
+                    </a>
+                </h5>
+                {% if item.pass_status == 'PASS' %}
+                <span class="badge bg-success fs-6">合格</span>
+                {% elif item.pass_status == 'REVIEW' %}
+                <span class="badge bg-warning text-dark fs-6">要確認</span>
+                {% elif item.pass_status == 'FAIL' %}
+                <span class="badge bg-danger fs-6">不合格</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h6>{{ item.title or '商品名未取得' }}</h6>
+                <p class="text-muted mb-0">
+                    {% if item.brand %}ブランド: {{ item.brand }}{% endif %}
+                    {% if item.category %}| カテゴリ: {{ item.category }}{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Amazon販売情報</h6>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>販売価格（最安FBA）</span>
+                            <strong>{{ "{:,}".format(item.amazon_price_fba_lowest) if item.amazon_price_fba_lowest else '-' }}円</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>販売手数料</span>
+                            <span>{{ "{:,}".format(item.amazon_fee_referral) if item.amazon_fee_referral else '-' }}円</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>FBA手数料</span>
+                            <span>{{ "{:,}".format(item.amazon_fee_fba) if item.amazon_fee_fba else '-' }}円</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>手数料合計</span>
+                            <strong class="text-danger">{{ "{:,}".format(item.amazon_fee_total) if item.amazon_fee_total else '-' }}円</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between bg-light">
+                            <span>入金価格</span>
+                            <strong>{{ "{:,}".format(item.amazon_payout) if item.amazon_payout else '-' }}円</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">楽天仕入情報</h6>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>一致タイプ</span>
+                            <span class="badge bg-secondary">{{ item.rakuten_match_type or 'UNKNOWN' }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>商品価格</span>
+                            <span>{{ "{:,}".format(item.rakuten_price) if item.rakuten_price else '-' }}円</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>送料</span>
+                            <span>
+                                {% if item.rakuten_shipping_status == 'FREE' %}
+                                <span class="badge bg-success">無料</span>
+                                {% elif item.rakuten_shipping_status == 'PAID' %}
+                                {{ "{:,}".format(item.rakuten_shipping) if item.rakuten_shipping else '-' }}円
+                                {% else %}
+                                <span class="badge bg-warning text-dark">不明</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>ポイント還元</span>
+                            <span class="text-success">-{{ "{:,}".format(item.rakuten_point) if item.rakuten_point else '-' }}円</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between bg-light">
+                            <span>実質仕入価格</span>
+                            <strong>{{ "{:,}".format(item.rakuten_cost_net) if item.rakuten_cost_net else '-' }}円</strong>
+                        </li>
+                    </ul>
+                    {% if item.rakuten_item_url %}
+                    <div class="card-footer">
+                        <a href="{{ item.rakuten_item_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            楽天で見る
+                        </a>
+                        <small class="text-muted ms-2">{{ item.rakuten_shop_name }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">売れ行き・セラー情報</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ "{:,}".format(item.rank_current) if item.rank_current else '-' }}</div>
+                        <small class="text-muted">現在ランキング</small>
+                    </div>
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ item.sales_est_30 if item.sales_est_30 else '-' }}</div>
+                        <small class="text-muted">30日販売数</small>
+                    </div>
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ item.sales_est_90 if item.sales_est_90 else '-' }}</div>
+                        <small class="text-muted">90日販売数</small>
+                    </div>
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ item.sales_est_180 if item.sales_est_180 else '-' }}</div>
+                        <small class="text-muted">180日販売数</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ item.seller_count if item.seller_count else '-' }}</div>
+                        <small class="text-muted">セラー数</small>
+                    </div>
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ item.fba_seller_count if item.fba_seller_count else '-' }}</div>
+                        <small class="text-muted">FBAセラー数</small>
+                    </div>
+                    <div class="col">
+                        <div class="fs-4 fw-bold">{{ item.fba_lowest_seller_count if item.fba_lowest_seller_count else '-' }}</div>
+                        <small class="text-muted">最安FBAセラー数</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4 {% if item.profit_amount and item.profit_amount >= 1000 %}border-success{% endif %}">
+            <div class="card-header bg-{% if item.profit_amount and item.profit_amount >= 1000 %}success text-white{% else %}light{% endif %}">
+                <h5 class="mb-0">利益計算</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="fs-1 fw-bold {% if item.profit_amount and item.profit_amount >= 1000 %}text-success{% endif %}">
+                    {{ "{:,}".format(item.profit_amount) if item.profit_amount else '-' }}円
+                </div>
+                <div class="fs-4 text-muted">
+                    {{ "{:.1f}%".format(item.profit_rate * 100) if item.profit_rate else '-' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">仕入れ候補</h6>
+            </div>
+            <div class="card-body">
+                <form id="candidate-form">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="is_candidate"
+                               {% if item.is_candidate %}checked{% endif %}>
+                        <label class="form-check-label" for="is_candidate">仕入れ候補に追加</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user_memo" class="form-label">メモ</label>
+                        <textarea class="form-control" id="user_memo" rows="3">{{ item.user_memo or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">保存</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">リスクフラグ</h6>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>出品制限</span>
+                    {% if item.flag_listing_restriction %}
+                    <span class="badge bg-danger">制限あり</span>
+                    {% elif item.flag_listing_restriction == false %}
+                    <span class="badge bg-success">OK</span>
+                    {% else %}
+                    <span class="badge bg-secondary">未確認</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>危険物</span>
+                    {% if item.flag_hazardous %}
+                    <span class="badge bg-danger">該当</span>
+                    {% elif item.flag_hazardous == false %}
+                    <span class="badge bg-success">非該当</span>
+                    {% else %}
+                    <span class="badge bg-secondary">未確認</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>大型商品</span>
+                    {% if item.flag_oversized %}
+                    <span class="badge bg-warning text-dark">大型</span>
+                    {% elif item.flag_oversized == false %}
+                    <span class="badge bg-success">通常</span>
+                    {% else %}
+                    <span class="badge bg-secondary">未確認</span>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('candidate-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const isCandidate = document.getElementById('is_candidate').checked;
+    const userMemo = document.getElementById('user_memo').value;
+
+    fetch(`/api/items/{{ item.id }}/candidate`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            is_candidate: isCandidate,
+            user_memo: userMemo
+        })
+    }).then(response => {
+        if (response.ok) {
+            alert('保存しました');
+        } else {
+            alert('エラーが発生しました');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}ジョブ詳細 - 物販リサーチ{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/jobs" class="btn btn-outline-secondary btn-sm">&larr; ジョブ一覧に戻る</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">ジョブ詳細</h5>
+                {% if job.status == 'DONE' %}
+                <span class="badge bg-success">完了</span>
+                {% elif job.status == 'RUNNING' %}
+                <span class="badge bg-primary">処理中</span>
+                {% elif job.status == 'PENDING' %}
+                <span class="badge bg-secondary">待機中</span>
+                {% elif job.status == 'FAILED' %}
+                <span class="badge bg-danger">失敗</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>ジョブID</strong></div>
+                    <div class="col-sm-8"><code>{{ job.job_id }}</code></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>作成日時</strong></div>
+                    <div class="col-sm-8">{{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                {% if job.started_at %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>開始日時</strong></div>
+                    <div class="col-sm-8">{{ job.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                {% endif %}
+                {% if job.completed_at %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>完了日時</strong></div>
+                    <div class="col-sm-8">{{ job.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">進捗</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="fs-2 fw-bold">{{ job.total_count }}</div>
+                        <div class="text-muted">総数</div>
+                    </div>
+                    <div class="col">
+                        <div class="fs-2 fw-bold text-success">{{ job.success_count }}</div>
+                        <div class="text-muted">成功</div>
+                    </div>
+                    <div class="col">
+                        <div class="fs-2 fw-bold text-danger">{{ job.fail_count }}</div>
+                        <div class="text-muted">失敗</div>
+                    </div>
+                </div>
+
+                {% set progress = ((job.success_count + job.fail_count) / job.total_count * 100) if job.total_count > 0 else 0 %}
+                <div class="progress mt-3" style="height: 25px;">
+                    <div class="progress-bar bg-success" style="width: {{ (job.success_count / job.total_count * 100) if job.total_count > 0 else 0 }}%">
+                        {{ job.success_count }}
+                    </div>
+                    <div class="progress-bar bg-danger" style="width: {{ (job.fail_count / job.total_count * 100) if job.total_count > 0 else 0 }}%">
+                        {{ job.fail_count }}
+                    </div>
+                </div>
+
+                {% if job.fail_count > 0 and job.status == 'DONE' %}
+                <div class="mt-3">
+                    <form action="/jobs/{{ job.job_id }}/retry" method="post">
+                        <button type="submit" class="btn btn-warning">
+                            失敗分を再試行（{{ job.fail_count }}件）
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">判定結果</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="row">
+                    <div class="col">
+                        <div class="fs-2 fw-bold text-success">{{ job.pass_count }}</div>
+                        <div class="text-muted">合格</div>
+                    </div>
+                    <div class="col">
+                        <div class="fs-2 fw-bold text-warning">{{ job.review_count }}</div>
+                        <div class="text-muted">要確認</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="/jobs/{{ job.job_id }}/items" class="btn btn-primary w-100">結果一覧を見る</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">判定基準</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>利益額</span>
+                    <strong>{{ "{:,}".format(job.threshold_profit_amount) }}円以上</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>利益率</span>
+                    <strong>{{ (job.threshold_profit_rate * 100)|int }}%以上</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>ランキング</span>
+                    <strong>{{ "{:,}".format(job.threshold_rank) }}位以内</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>30日販売数</span>
+                    <strong>{{ job.threshold_sales_30 }}個以上</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>ポイント率</span>
+                    <strong>{{ (job.point_rate_total * 100)|round(1) }}%</strong>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}ジョブ一覧 - 物販リサーチ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>ジョブ一覧</h2>
+    <a href="/jobs/create" class="btn btn-primary">新規ジョブ作成</a>
+</div>
+
+{% if jobs %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ステータス</th>
+                <th>作成日時</th>
+                <th>総数</th>
+                <th>成功</th>
+                <th>失敗</th>
+                <th>合格</th>
+                <th>要確認</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td>
+                    {% if job.status == 'DONE' %}
+                    <span class="badge bg-success">完了</span>
+                    {% elif job.status == 'RUNNING' %}
+                    <span class="badge bg-primary">処理中</span>
+                    {% elif job.status == 'PENDING' %}
+                    <span class="badge bg-secondary">待機中</span>
+                    {% elif job.status == 'FAILED' %}
+                    <span class="badge bg-danger">失敗</span>
+                    {% endif %}
+                </td>
+                <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ job.total_count }}</td>
+                <td>{{ job.success_count }}</td>
+                <td>
+                    {% if job.fail_count > 0 %}
+                    <span class="text-danger">{{ job.fail_count }}</span>
+                    {% else %}
+                    {{ job.fail_count }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.pass_count > 0 %}
+                    <span class="text-success fw-bold">{{ job.pass_count }}</span>
+                    {% else %}
+                    {{ job.pass_count }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.review_count > 0 %}
+                    <span class="text-warning">{{ job.review_count }}</span>
+                    {% else %}
+                    {{ job.review_count }}
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/jobs/{{ job.job_id }}" class="btn btn-sm btn-outline-primary">詳細</a>
+                    <a href="/jobs/{{ job.job_id }}/items" class="btn btn-sm btn-outline-secondary">結果一覧</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    ジョブがありません。<a href="/jobs/create">新規ジョブを作成</a>してください。
+</div>
+{% endif %}
+{% endblock %}

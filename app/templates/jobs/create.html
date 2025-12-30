@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}新規ジョブ作成 - 物販リサーチ{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">新規リサーチジョブ作成</h2>
+
+        <div class="card">
+            <div class="card-body">
+                <form id="job-form" method="post" action="/jobs/create">
+                    <div class="mb-3">
+                        <label for="asins" class="form-label">ASINリスト（最大1000件）</label>
+                        <textarea
+                            class="form-control font-monospace"
+                            id="asins"
+                            name="asins"
+                            rows="10"
+                            placeholder="B07XXXXX&#10;B08XXXXX&#10;B09XXXXX&#10;..."
+                            required
+                        ></textarea>
+                        <div class="form-text">
+                            1行1ASIN、またはカンマ区切りで入力してください。
+                            <span id="asin-count" class="text-primary fw-bold">0</span> 件
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="csv-file" class="form-label">またはCSVファイルをアップロード</label>
+                        <input type="file" class="form-control" id="csv-file" accept=".csv,.txt">
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3">判定基準</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="threshold_profit_amount" class="form-label">最低利益額（円）</label>
+                            <input type="number" class="form-control" id="threshold_profit_amount"
+                                   name="threshold_profit_amount" value="1000" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="threshold_profit_rate" class="form-label">最低利益率（%）</label>
+                            <input type="number" class="form-control" id="threshold_profit_rate"
+                                   name="threshold_profit_rate" value="15" min="0" max="100" step="1">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="threshold_rank" class="form-label">ランキング上限（位以内）</label>
+                            <input type="number" class="form-control" id="threshold_rank"
+                                   name="threshold_rank" value="50000" min="1">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="threshold_sales_30" class="form-label">30日販売数（個以上）</label>
+                            <input type="number" class="form-control" id="threshold_sales_30"
+                                   name="threshold_sales_30" value="10" min="0">
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3">ポイント設定</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="point_rate_normal" class="form-label">通常ポイント率（%）</label>
+                            <input type="number" class="form-control" id="point_rate_normal"
+                                   name="point_rate_normal" value="1" min="0" max="100" step="0.1">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="point_rate_spu" class="form-label">SPUポイント率（%）</label>
+                            <input type="number" class="form-control" id="point_rate_spu"
+                                   name="point_rate_spu" value="7" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>合計ポイント率: <strong id="total-point-rate">8</strong>%（v1.0固定想定）</small>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            リサーチ開始
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const asinsTextarea = document.getElementById('asins');
+    const asinCountSpan = document.getElementById('asin-count');
+    const csvFileInput = document.getElementById('csv-file');
+    const normalRateInput = document.getElementById('point_rate_normal');
+    const spuRateInput = document.getElementById('point_rate_spu');
+    const totalRateSpan = document.getElementById('total-point-rate');
+
+    function countAsins() {
+        const text = asinsTextarea.value.trim();
+        if (!text) {
+            asinCountSpan.textContent = '0';
+            return;
+        }
+        const asins = text.split(/[\n,]/).map(a => a.trim()).filter(a => a.length > 0);
+        const unique = [...new Set(asins)];
+        asinCountSpan.textContent = unique.length;
+    }
+
+    function updateTotalRate() {
+        const normal = parseFloat(normalRateInput.value) || 0;
+        const spu = parseFloat(spuRateInput.value) || 0;
+        totalRateSpan.textContent = (normal + spu).toFixed(1);
+    }
+
+    asinsTextarea.addEventListener('input', countAsins);
+    normalRateInput.addEventListener('input', updateTotalRate);
+    spuRateInput.addEventListener('input', updateTotalRate);
+
+    csvFileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const content = event.target.result;
+            const lines = content.split(/[\r\n]+/).filter(l => l.trim());
+            const asins = [];
+
+            lines.forEach(line => {
+                const parts = line.split(',');
+                parts.forEach(part => {
+                    const cleaned = part.trim().replace(/"/g, '');
+                    if (/^B0[A-Z0-9]{8}$/i.test(cleaned)) {
+                        asins.push(cleaned.toUpperCase());
+                    }
+                });
+            });
+
+            asinsTextarea.value = [...new Set(asins)].join('\n');
+            countAsins();
+        };
+        reader.readAsText(file);
+    });
+});
+</script>
+{% endblock %}
